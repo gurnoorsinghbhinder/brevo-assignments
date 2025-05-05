@@ -1,48 +1,51 @@
 package main
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
+	"strings"
 )
 
 const (
-	c1 uint32 = 0xcc9e2d51
-	c2 uint32 = 0x1b873593
-	Prime1 = 0x85ebca6b
-    Prime2 = 0xc2b2ae35
-    Prime3 = 0xe6546b64
+	c1           uint32 = 0xcc9e2d51
+	c2           uint32 = 0x1b873593
+	Prime1       uint32 = 0x85ebca6b
+	Prime2       uint32 = 0xc2b2ae35
+	Prime3       uint32 = 0xe6546b64
+	base62              = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	base62Length        = 62
+	seed         uint32 = 0x9747b28c
 )
 
-var seed uint32 = 0x9747b28c
-
-//this function performs a left rotation on 32-bit unsigned integer.
+// Performs a left rotation on 32-bit unsigned integer
 func rotateLeft(num uint32, k int) uint32 {
 	return (num << k) | (num >> (32 - k))
 }
 
-func convertBase62(hash uint32) string {
-	const Base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	const Base62Length=62
+// Converts 32-bit hash to base62 encoded string
+func convertBase62(hash uint32, length int, trimLeadingZeros bool) string {
 	var ansi string
-	for i := 0; i < 10; i++ {
-		keyLength := hash % Base62Length
-		ansi = string(Base62[keyLength]) + ansi
-		hash /= Base62Length
+	for i := 0; i < length; i++ {
+		keyLength := hash % base62Length
+		ansi = string(base62[keyLength]) + ansi
+		hash /= base62Length
+	}
+	if trimLeadingZeros {
+		ansi = strings.TrimLeft(ansi, "0")
 	}
 	return ansi
 }
 
-func hashOf(key string) (string,error) {
-	keyLength := len(key)
-    if keyLength==0{
-        err:=errors.New("Empty Key! Please Try Again !")
-		return "",err
+// Error if input key is empty
+func checkEmptyKey(key string, keyLength int) error {
+	if keyLength == 0 {
+		return errors.New("empty key! please try again!")
 	}
+	return nil
+}
 
-	hash := seed
-	
-
-	i := 0 //so that left bits can be processed later
+// Processes full 4-byte chunks
+func handleInitialBits(key string, keyLength, i int, hash uint32) (uint32, int) {
 	for ; i+4 <= keyLength; i += 4 {
 		curr := uint32(key[i]) | uint32(key[i+1])<<8 | uint32(key[i+2])<<16 | uint32(key[i+3])<<24
 		curr *= c1
@@ -52,9 +55,12 @@ func hashOf(key string) (string,error) {
 		hash = rotateLeft(hash, 13)
 		hash = hash*5 + Prime3
 	}
+	return hash, i
+}
 
-	//handling final bits which are not processed above
-	var remainingBytes uint32 = 0
+// Processes leftover bytes
+func handleRemainingBits(key string, keyLength, i int, hash uint32) (uint32, int) {
+	var remainingBytes uint32
 	switch keyLength % 4 {
 	case 3:
 		remainingBytes |= uint32(key[i+2]) << 16
@@ -68,97 +74,56 @@ func hashOf(key string) (string,error) {
 		remainingBytes = rotateLeft(remainingBytes, 15)
 		remainingBytes *= c2
 		hash ^= remainingBytes
-		//we do not used last two steps of above loop to make it over scattered so dont use it
 	}
+	return hash, i
+}
 
-	//avalanche effect
+// Final bit-mixing (avalanche effect)
+func handleAvalancheEffect(keyLength int, hash uint32) uint32 {
 	hash ^= uint32(keyLength)
 	hash ^= hash >> 16
-	hash *= Prime1 //random prime no to increase uniqueness
+	hash *= Prime1
 	hash ^= hash >> 13
-	hash *= Prime2 //random prime no
+	hash *= Prime2
 	hash ^= hash >> 16
+	return hash
+}
 
-	return convertBase62(hash),nil
+// Main hash function with base62 output
+func hashOf(key string) (string, error) {
+	keyLength := len(key)
+	if err := checkEmptyKey(key, keyLength); err != nil {
+		return "", err
+	}
+
+	hash := seed
+	i := 0
+	hash, i = handleInitialBits(key, keyLength, i, hash)
+	hash, i = handleRemainingBits(key, keyLength, i, hash)
+	hash = handleAvalancheEffect(keyLength, hash)
+
+	return convertBase62(hash, 10, true), nil
 }
 
 func main() {
-	//testing identical inputs
 	fmt.Println("Same examples:")
-	if hash,err:=hashOf("harshit");err==nil{
-		fmt.Println(hash)
-	} else{
-		fmt.Println(err)
-	}
-	if hash,err:=hashOf("harshit");err==nil{
-		fmt.Println(hash)
-	} else{
-		fmt.Println(err)
-	}
-	
-	//testing avalache effect  
-	fmt.Println()
-	fmt.Println("slightly different:")
-	if hash,err:=hashOf("harshit a");err==nil{
-		fmt.Println(hash)
-	} else {
-		fmt.Println(err)
-	}
-	if hash,err:=hashOf("harshit b");err==nil{
-		fmt.Println(hash)
-	} else {
-		fmt.Println(err)
-	}
-	
-	//testing permutations 
-	fmt.Println()
-	fmt.Println("permutated examples:")
-	if hash,err:=hashOf("1234");err==nil{
-		fmt.Println(hash)
-	} else{
-		fmt.Println(err)
-	}
-	if hash,err:=hashOf("1243");err==nil{
-		fmt.Println(hash)
-	} else{
-		fmt.Println(err)
-	}
-	if hash,err:=hashOf("123");err==nil{
-		fmt.Println(hash)
-	} else{
-		fmt.Println(err)
-	}
-	
-	//testing edge cases
-    fmt.Println()
-	fmt.Println("Edge Cases:")
-	if hash,err:=hashOf("");err==nil{
-		fmt.Println(hash)
-	} else{
-		fmt.Println(err)
-	}
+	fmt.Println(hashOf("harshit"))
+	fmt.Println(hashOf("harshit"))
 
-	//additional test cases
-	fmt.Println()
-	fmt.Println("Additional Edge Cases:")
-longString := "a very long string that exceeds normal length for testing purposes"
-if hash,err:=hashOf(longString);err==nil{
-	fmt.Println(hash)
-} else{
-	fmt.Println(err)
-}
+	fmt.Println("\nSlightly different:")
+	fmt.Println(hashOf("harshit a"))
+	fmt.Println(hashOf("harshit b"))
 
-specialChars := "!@#$%^&*()_+"
-if hash,err:=hashOf(specialChars);err==nil{
-	fmt.Println(hash)
-} else{
-	fmt.Println(err)
-}
+	fmt.Println("\nPermutated examples:")
+	fmt.Println(hashOf("1234"))
+	fmt.Println(hashOf("1243"))
+	fmt.Println(hashOf("123"))
 
-whitespace := "     "
-if hash,err:=hashOf(whitespace);err==nil{
-	fmt.Println(hash)
-} else{
-	fmt.Println(err)
-}
+	fmt.Println("\nEdge Cases:")
+	fmt.Println(hashOf(""))
+
+	fmt.Println("\nAdditional Edge Cases:")
+	fmt.Println(hashOf("a very long string that exceeds normal length for testing purposes"))
+	fmt.Println(hashOf("!@#$%^&*()_+"))
+	fmt.Println(hashOf("     "))
 }
