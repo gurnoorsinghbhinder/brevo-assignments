@@ -3,6 +3,7 @@ package HashFunction
 import (
     "errors"
     "fmt"
+    //"strings"
 )
 
 const (
@@ -27,9 +28,8 @@ func convertBase62(hash uint64, length int, trimLeadingZeros bool) string {
     for hash > 0 { // Only process non-zero hash values
         keyLength := hash % base62Length
         ansi = string(base62[keyLength]) + ansi
-        hash /= base62Length
-    }
-
+        hash /= base62Length}
+    
     return ansi
 }
 
@@ -123,25 +123,34 @@ func hashOf(key string) (string, error) {
     return convertBase62(hash, 10, true), nil
 }
 
+func printHash(str ...string){
+    for _,val:=range str{
+        ansi,err:=hashOf(val)
+        if err!=nil{
+            fmt.Println("error in calculating hash of: ",ansi," with Err:",err)
+        }else{
+            fmt.Println("Hash of ",val," is: ",ansi)
+        }
+
+    }
+    fmt.Println()
+} 
+
 func HashFunction() {
-    fmt.Println("Same examples:")
-    fmt.Println(hashOf("harshit"))
-    fmt.Println(hashOf("harshit"))
+ 
+    //same examples
+    printHash("harshit","harshit")
 
-    fmt.Println("\nSlightly different:")
-    fmt.Println(hashOf("harshit a"))
-    fmt.Println(hashOf("harshit b"))
+    //Slightly different
+    printHash("harshit a","harshit b")
 
-    fmt.Println("\nPermutated examples:")
-    fmt.Println(hashOf("1234"))
-    fmt.Println(hashOf("1243"))
-    fmt.Println(hashOf("123"))
+    //Permutated examples:
+    printHash("1234","1243","123")
 
-    fmt.Println("\nEdge Cases:")
-    fmt.Println(hashOf(""))
+    //Edge cases 
+    printHash("","a")
 
-    fmt.Println("\nAdditional Edge Cases:")
-    fmt.Println(hashOf("a very long string that exceeds normal length for testing purposes"))
-    fmt.Println(hashOf("!@#$%^&*()_+"))
-    fmt.Println(hashOf("     "))
+    //Additional Edge Cases
+    printHash("a very long string that exceeds normal length for testing purposes","!@#$%^&*()_+","!@#$%^&*()_+","   ")
+
 }
