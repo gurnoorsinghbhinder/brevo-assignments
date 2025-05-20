@@ -26,7 +26,7 @@ func convertBase62(hash uint64, length int, trimLeadingZeros bool) string {
 // Error if input key is empty
 func checkEmptyKey(key string, keyLength int) error {
 	if keyLength == 0 {
-		return errors.New("empty key! please try again!")
+		return errors.New("empty key, please try again")
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func handleInitialBits(key string, keyLength, i int, hash uint64) (uint64, int) 
 }
 
 // Processes leftover bytes
-func handleRemainingBits(key string, keyLength, i int, hash uint64) (uint64, int) {
+func handleRemainingBits(key string, keyLength, i int, hash uint64) (uint64) {
 	var remainingBytes uint64
 	switch keyLength % 8 {
 	case 7:
@@ -75,7 +75,7 @@ func handleRemainingBits(key string, keyLength, i int, hash uint64) (uint64, int
 		remainingBytes *= c2
 		hash ^= remainingBytes
 	}
-	return hash, i
+	return hash
 }
 
 // Final bit-mixing (avalanche effect)
@@ -107,7 +107,7 @@ func hashOf(key string) (string, error) {
 	hash := seed
 	i := 0
 	hash, i = handleInitialBits(key, keyLength, i, hash)
-	hash, i = handleRemainingBits(key, keyLength, i, hash)
+	hash = handleRemainingBits(key, keyLength, i, hash)
 	hash = handleAvalancheEffect(keyLength, hash)
 
 	return convertBase62(hash, 10, true), nil
