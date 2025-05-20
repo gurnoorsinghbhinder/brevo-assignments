@@ -1,4 +1,4 @@
-package HashFunction
+package main
 
 import (
     "errors"
@@ -6,16 +6,6 @@ import (
     //"strings"
 )
 
-const (
-    c1           uint64 = 0xcc9e2d51
-    c2           uint64 = 0x1b873593
-    Prime1       uint64 = 0x85ebca6b
-    Prime2       uint64 = 0xc2b2ae35
-    Prime3       uint64 = 0xe6546b64
-    base62              = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-    base62Length        = 62
-    seed         uint64 = 0x9747b28c
-)
 
 // Performs a left rotation on 64-bit unsigned integer
 func rotateLeft(num uint64, k int) uint64 {
@@ -151,6 +141,6 @@ func HashFunction() {
     printHash("","a")
 
     //Additional Edge Cases
-    printHash("a very long string that exceeds normal length for testing purposes","!@#$%^&*()_+","!@#$%^&*()_+","   ")
+    printHash("a very long string that exceeds normal length for testing purposes","!@#$%^&*()_+","   ")
 
 }
